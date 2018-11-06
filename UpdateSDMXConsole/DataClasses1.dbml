@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="SDMX_DB" Class="DataClasses1DataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="AppSettings" ConnectionString="Data Source=localhost;Initial Catalog=SDMX_DB;Persist Security Info=True;User ID=sa" SettingsObjectName="UpdateSDMXConsole.Properties.Settings" SettingsPropertyName="SDMX_DBConnectionString" Provider="System.Data.SqlClient" />
+  <Table Name="dbo.GeoAreas" Member="GeoAreas">
+    <Type Name="GeoArea">
+      <Column Name="GeoCodeID" Type="System.Int64" DbType="BigInt NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="GeoAreaCode" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="GeoAreaName" Type="System.String" DbType="VarChar(150)" CanBeNull="true" />
+      <Column Name="Longitude" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Latitude" Type="System.Double" DbType="Float" CanBeNull="true" />
+    </Type>
+  </Table>
+</Database>
