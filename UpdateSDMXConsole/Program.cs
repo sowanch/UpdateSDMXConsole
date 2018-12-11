@@ -16,17 +16,29 @@ namespace UpdateSDMXConsole
 {
     class Program
     {
+        //URL prefix for the SDMX API offered by the UNEP
         static string endpointGame = ConfigurationManager.AppSettings["endpointGame"];
+        //Indicator Code for which one wishes to draw data
         static string indicatorCode = ConfigurationManager.AppSettings["indicatorCode"];
+        //Indicates the period for which data needs to be drawn
         static string endURL = ConfigurationManager.AppSettings["endURL"];
+        //ArcGIS Feature Service URL which the data wll be pushed to
         static string featureServiceURL = ConfigurationManager.AppSettings["serviceURL"];
+        //Base URL for the ArcGIS Online or Portal for ArcGIS instance which will be used
         static string baseURL = ConfigurationManager.AppSettings["baseURL"];
+        //Username Credential for the ArcGIS Online or Portal for ArcGIS instance which will be used
         static string username = ConfigurationManager.AppSettings["pUsername"];
+        //Password Credential for the ArcGIS Online or Portal for ArcGIS instance which will be used
         static string password = ConfigurationManager.AppSettings["pPassword"];
+        //Title/Name of the .sd file which will be used to regenerate the feature service when adding new data
         static string definitionTitle = ConfigurationManager.AppSettings["definitionTitle"];
+        //Name of the column which references geographic area code
         static string refAreaName = ConfigurationManager.AppSettings["refAreaName"];
+        //Name of the column which references the first OBS Value
         static string firstOBSValue = ConfigurationManager.AppSettings["firstOBSValue"];
+        //Name of the column which references the last OBS Value
         static string lastOBSValue = ConfigurationManager.AppSettings["lastOBSValue"];
+        //Generic Namespace
         static string genericNSP = ConfigurationManager.AppSettings["genericNSP"];
         static DataClasses1DataContext ddc = new DataClasses1DataContext();
         static Result responze = new Result();
@@ -97,7 +109,6 @@ namespace UpdateSDMXConsole
 
                         foreach (var seriesItem in itemDescendants)
                         {
-                            Console.WriteLine(seriesItem.FirstAttribute.Value);
                             XAttribute hj = seriesItem.LastAttribute;
                             seriesItemCount++;
 
@@ -105,6 +116,12 @@ namespace UpdateSDMXConsole
                             if (seriesItem.FirstAttribute.Value == refAreaName)
                             {
                                 featureJSON += "'" + seriesItem.FirstAttribute.Value + "': " + seriesItem.LastAttribute.Value + ",";
+
+                                //Get name of reference area
+                                string refLabel = ddc.GeoAreas.Where(v => v.GeoAreaCode.Equals(int.Parse(seriesItem.LastAttribute.Value))).First().GeoAreaName;
+
+                                //Add reference area by name for the label
+                                featureJSON += "'" + "REF_LABEL" + "': '" + refLabel + "',";
 
                                 //Get geometry of Reference Area
                                 coordinateX = ddc.GeoAreas.Where(v => v.GeoAreaCode.Equals(int.Parse(seriesItem.LastAttribute.Value))).First().Longitude;
@@ -123,14 +140,29 @@ namespace UpdateSDMXConsole
                                     {
                                         //Add OBS Value and OBS Dimension values
                                         string preceedingFeatureJSON = featureJSON.Substring(featureJSON.Length - 1, 1);
+
+                                        /********************Modification to remove _T value **********************************************/
+                                        string rowOBSValue = "";
+
+                                        if (obsDescendants.ToList()[obsCount].LastAttribute.Value == "_T")
+                                        {
+                                            rowOBSValue = "No Breakdown";
+                                        }
+                                        else {
+                                            rowOBSValue = obsDescendants.ToList()[obsCount].LastAttribute.Value;
+                                        }
+
                                         if (preceedingFeatureJSON != ",")
                                         {
-                                            featureJSON += ",'" + obsDescendants.ToList()[obsCount].FirstAttribute.Value + "': " + "'" + obsDescendants.ToList()[obsCount].LastAttribute.Value + "'";
+                                            featureJSON += ",'" + obsDescendants.ToList()[obsCount].FirstAttribute.Value + "': " + "'" + rowOBSValue + "'";
                                         }
                                         else
                                         {
-                                            featureJSON += "'" + obsDescendants.ToList()[obsCount].FirstAttribute.Value + "': " + "'" + obsDescendants.ToList()[obsCount].LastAttribute.Value + "'";
+                                            featureJSON += "'" + obsDescendants.ToList()[obsCount].FirstAttribute.Value + "': " + "'" + rowOBSValue + "'";
                                         }
+
+                                        /********************End of Modification to remove _T value **********************************************/
+
                                         featureJSON += ",'" + "ObsValue" + "': " + obsDescendVal.ToList()[obsCount].FirstAttribute.Value;
                                         obsCount++;
 
@@ -153,21 +185,36 @@ namespace UpdateSDMXConsole
                                 string output = arrayFeatureJSON.Substring(arrayFeatureJSON.Length - 1, 1);
                                 string lastFeatureJSON = featureJSON.Substring(featureJSON.Length - 1, 1);
 
+                                /********************Modification to remove _T value **********************************************/
+
+                                string rowValue = "";
+
+                                if (seriesItem.LastAttribute.Value == "_T")
+                                {
+                                    rowValue = "No Breakdown";
+                                }
+                                else
+                                {
+                                    rowValue = seriesItem.LastAttribute.Value;
+                                }
+
                                 if (output == "{")
                                 {
-                                    featureJSON += "'" + seriesItem.FirstAttribute.Value + "': " + "'" + seriesItem.LastAttribute.Value + "'" + ",";
+                                    featureJSON += "'" + seriesItem.FirstAttribute.Value + "': " + "'" + rowValue + "'" + ",";
                                 }
                                 else
                                 {
                                     if (lastFeatureJSON != ",")
                                     {
-                                        featureJSON += ",'" + seriesItem.FirstAttribute.Value + "': " + "'" + seriesItem.LastAttribute.Value + "'";
+                                        featureJSON += ",'" + seriesItem.FirstAttribute.Value + "': " + "'" + rowValue + "'";
                                     }
                                     else
                                     {
-                                        featureJSON += "'" + seriesItem.FirstAttribute.Value + "': " + "'" + seriesItem.LastAttribute.Value + "'";
+                                        featureJSON += "'" + seriesItem.FirstAttribute.Value + "': " + "'" + rowValue + "'";
                                     }
                                 }
+
+                                /********************End of Modification to remove _T value **********************************************/
 
                                 if (seriesItem.FirstAttribute.Value == lastOBSValue)
                                 {
@@ -216,6 +263,7 @@ namespace UpdateSDMXConsole
                         Library.WriteErrorLog(arrayFeatureJSON);
 
                         string updateResult = @getQueryResponse(updateData, updateURL);
+                        Console.WriteLine(updateResult);
 
                         Thread.Sleep(5000);
 
